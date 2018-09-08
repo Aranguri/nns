@@ -19,8 +19,7 @@ def tanh_prime(x):
 def expand(array):
     return np.expand_dims(array, axis=1)
 
-def add_bias(array, axis=0):#HEY I CHANGED THE 1 for 1e-3
-    return array
+def add_bias(array, axis=0):
     pad = ((0, 1), (0, 0)) if axis == 0 else ((0, 0), (0, 1))
     return np.pad(array, pad, 'constant', constant_values=1)#e-3)
 
@@ -53,7 +52,7 @@ def points_to_curve(y):
     curve = np.poly1d(np.polyfit(x, y, 8))(np.unique(x[:-15]))
     return curve
 
-def eval_numerical_gradient(f, x, h=1e-4):
+def eval_numerical_gradient(f, x, dout, h=1e-4):
     grad = np.zeros_like(x)
     it = np.nditer(x, flags=['multi_index'])#, op_flags=['readwrite'])
 
@@ -67,7 +66,7 @@ def eval_numerical_gradient(f, x, h=1e-4):
         neg = f(x)[0]
         x[i] = old_xi
 
-        grad[i] = np.sum(pos - neg) / (2 * h)
+        grad[i] = np.sum((pos - neg) * dout) / (2 * h)
         it.iternext()
     return grad
 

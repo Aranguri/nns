@@ -1,6 +1,94 @@
 import numpy as np
 from utils import *
 
+hidden_size = 30
+batch_size = 20
+x = np.random.randn(hidden_size, batch_size)
+h_prev = np.random.randn(hidden_size, batch_size)
+c_prev = np.random.randn(hidden_size, batch_size)
+wxh = np.random.randn(4 * hidden_size, hidden_size)
+whh = np.random.randn(4 * hidden_size, hidden_size + 1)
+dh_prev = np.random.randn(hidden_size, batch_size)
+dc_prev = np.zeros((hidden_size, batch_size))
+
+def two_steps_forward(whh):
+    h, c, cache = h_prev, c_prev, {}
+    for t in range(10):
+        h, c, cache[t] = new_lstm_forward(x, h, c, wxh, whh)
+    return h, cache
+
+def two_steps_backward(dout, cache):
+    dh, dc = dh_prev, dc_prev
+    sum_dwxh, sum_dwhh = np.zeros_like(wxh), np.zeros_like(whh)
+    for t in reversed(range(10)):
+        dwxh, dwhh, dh, dc = new_lstm_backward(dh, dc, cache[t])
+        sum_dwxh += dwxh
+        sum_dwhh += dwhh
+    return sum_dwxh, sum_dwhh
+
+def new_lstm_forward(x, h_prev, c_prev, wxh, whh):
+    #affine
+    v = wxh.dot(x) + whh.dot(add_bias(h_prev))
+
+    #gates
+    pi, pf, po, pg = np.split(v, 4)
+    i, f, o, g = sigmoid(pi), sigmoid(pf), sigmoid(po), np.tanh(pg)
+
+    #c
+    c = f * c_prev + i * g
+
+    #h
+    tanh_c = np.tanh(c)
+    h = tanh_c * o
+
+    cache = x, h_prev, wxh, whh, pi, pf, po, pg, i, f, o, g, c_prev, c, tanh_c
+    return h, c, cache
+
+def new_lstm_backward(dout, dc_out, cache):
+    x, h_prev, wxh, whh, pi, pf, po, pg, i, f, o, g, c_prev, c, tanh_c = cache
+
+    #h
+    dtanh_c = o * dout
+    do = tanh_c * dout
+    dc = tanh_prime(c) * dtanh_c + dc_out
+
+    #c
+    df = c_prev * dc
+    dc_prev = f * dc
+    di = g * dc
+    dg = i * dc
+
+    #gates
+    dpi = sigmoid_prime(pi) * di
+    dpf = sigmoid_prime(pf) * df
+    dpo = sigmoid_prime(po) * do
+    dpg = tanh_prime(pg) * dg
+    dv = np.concatenate((dpi, dpf, dpo, dpg))
+
+    #affine
+    dwxh = dv.dot(x.T)
+    dwhh = dv.dot(add_bias(h_prev).T)
+    dh_prev = remove_bias(whh.T).dot(dv)
+    return dwxh, dwhh, dh_prev, dc_prev
+
+grad = eval_numerical_gradient(two_steps_forward, whh, dh_prev)
+print ('Numerical: ', grad)
+h, cache = two_steps_forward(whh)
+dwxh, dwhh = two_steps_backward(dh_prev, cache)
+print ('Analytical', dwhh)
+print (rel_difference(grad, dwhh))
+
+
+
+
+
+
+
+
+
+
+
+
 def step_forward_lstm(x, h, c, wxh, whh):
     v = wxh.dot(x) + whh.dot(add_bias(h))
     pi, pf, po, pg = np.split(v, 4)
@@ -88,29 +176,3 @@ def lstm_sample(x, wxh, whh, why, hidden_size, vocab_size):
         s[t] = np.random.choice(range(vocab_size), p=normalize(s[t]))
         x = expand(one_hot(s[t], vocab_size))
     return s.values()
-
-hidden_size = 2
-batch_size = 1
-x = np.ones(hidden_size, batch_size)
-h = np.ones((hidden_size, batch_size))
-c = np.zeros((hidden_size, batch_size))
-wxh = np.ones((4 * hidden_size, hidden_size))
-whh = np.ones((4 * hidden_size, hidden_size))
-
-dout = np.ones((hidden_size, batch_size))
-dc_prev = np.zeros((hidden_size, batch_size))
-
-def flstm(whh):
-    return step_forward_lstm(x, h, c, wxh, whh)
-
-s = np.random.randn(hidden_size, batch_size)
-y = np.random.randint(0, hidden_size, size=(batch_size,))
-
-def fsoft(s):
-    return softmax(s, y)
-
-grad = eval_numerical_gradient(fsoft, s)
-print ('Numerical: ', grad)
-ds, loss = fsoft(s)
-print ('Analytical', ds)
-print (rel_difference(grad, ds))
