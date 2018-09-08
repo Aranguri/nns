@@ -1,4 +1,8 @@
 Next steps:
+Try removing the s = None. Try using only one weight instead of wxh and whh
+
+build a framework for automatic differentation?
+
 I'm debugging the code to see what's producing the rel error of 1e-3 in the forward and backward functions. I tested lstm_step_forward, forward_affine, and softmax. I was doing something with the h_prev and c_prev. It seems that the error is related to the hs and cs
 
 See whether layers.py works by using eval_numerical_gradient (maybe sampling is working bad because the loss decreases)

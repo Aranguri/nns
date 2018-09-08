@@ -1,30 +1,40 @@
 import numpy as np
 from utils import *
 
-hidden_size = 30
-batch_size = 20
+hidden_size = 3
+batch_size = 2
+seq_length = 4
 x = np.random.randn(hidden_size, batch_size)
-h_prev = np.random.randn(hidden_size, batch_size)
-c_prev = np.random.randn(hidden_size, batch_size)
+y = np.random.randint(hidden_size, size=(batch_size,))
 wxh = np.random.randn(4 * hidden_size, hidden_size)
 whh = np.random.randn(4 * hidden_size, hidden_size + 1)
-dh_prev = np.random.randn(hidden_size, batch_size)
-dc_prev = np.zeros((hidden_size, batch_size))
+why = np.random.randn(hidden_size, hidden_size + 1)
+dout = np.random.randn(seq_length, hidden_size, batch_size)
+init_hc = lambda: [np.zeros((hidden_size, batch_size))] * 2
 
 def two_steps_forward(whh):
-    h, c, cache = h_prev, c_prev, {}
-    for t in range(10):
-        h, c, cache[t] = new_lstm_forward(x, h, c, wxh, whh)
-    return h, cache
+    (h, c), cache, loss_acc = init_hc(), {}, 0
+    for t in range(seq_length):
+        h, c, cache_lstm = new_lstm_forward(x, h, c, wxh, whh)
+        s, cache_affine = step_forward_affine(h, why)
+        loss, cache_sotfmax = forward_softmax(s, y)
+        loss_acc += loss
+        cache[t] = cache_lstm, cache_affine, cache_sotfmax
+    return loss_acc, cache
 
 def two_steps_backward(dout, cache):
-    dh, dc = dh_prev, dc_prev
-    sum_dwxh, sum_dwhh = np.zeros_like(wxh), np.zeros_like(whh)
-    for t in reversed(range(10)):
-        dwxh, dwhh, dh, dc = new_lstm_backward(dh, dc, cache[t])
+    dh, dc = init_hc()
+    sum_dwxh, sum_dwhh, sum_dwhy = np.zeros_like(wxh), np.zeros_like(whh), np.zeros_like(why)
+    sum_dwhy = np.zeros_like(why)
+    for t in reversed(range(seq_length)):
+        cache_lstm, cache_affine, cache_sotfmax = cache[t]
+        ds = backward_softmax(cache_sotfmax)
+        da, dwhy = step_backward_affine(ds, cache_affine)
+        dwxh, dwhh, dh, dc = new_lstm_backward(da + dh, dc, cache_lstm)
         sum_dwxh += dwxh
         sum_dwhh += dwhh
-    return sum_dwxh, sum_dwhh
+        sum_dwhy += dwhy
+    return sum_dwxh, sum_dwhh, sum_dwhy
 
 def new_lstm_forward(x, h_prev, c_prev, wxh, whh):
     #affine
@@ -71,10 +81,34 @@ def new_lstm_backward(dout, dc_out, cache):
     dh_prev = remove_bias(whh.T).dot(dv)
     return dwxh, dwhh, dh_prev, dc_prev
 
-grad = eval_numerical_gradient(two_steps_forward, whh, dh_prev)
+def step_forward_affine(x, w):
+    x = add_bias(x)
+    s = w.dot(x)
+    return s, (x, w)
+
+def step_backward_affine(dout, cache):
+    x, w = cache
+    dx = w.T.dot(dout)[:-1] # :-1 removes the bias
+    dw = dout.dot(x.T)
+    return dx, dw
+
+def forward_softmax(s, y):
+    exp_s = np.exp(s)
+    p = exp_s / exp_s.sum(0)
+    correct_s = p[y, range(len(y))]
+    loss = -np.sum(np.log(correct_s))
+    cache = p, y
+    return loss, cache
+
+def backward_softmax(cache):
+    p, y = cache
+    p[y, range(len(y))] -= 1
+    return p
+
+grad = eval_numerical_gradient(two_steps_forward, whh)
 print ('Numerical: ', grad)
 h, cache = two_steps_forward(whh)
-dwxh, dwhh = two_steps_backward(dh_prev, cache)
+dwxh, dwhh, dwhy = two_steps_backward(dout, cache)
 print ('Analytical', dwhh)
 print (rel_difference(grad, dwhh))
 
@@ -122,17 +156,6 @@ def step_backward_lstm(dout, cache, dc_prev, h_prev, c_prev):
     dh_prev = whh.T.dot(dv)#[:-1]
 
     return dwxh, dwhh, dh_prev, dc_prev
-
-def step_forward_affine(x, w):
-    x = add_bias(x)
-    s = w.dot(x)
-    return s, (x, w)
-
-def step_backward_affine(dout, cache):
-    x, w = cache
-    dx = w.T.dot(dout)[:-1] # :-1 removes the bias
-    dw = dout.dot(x.T)
-    return dx, dw
 
 def softmax(s, y):
     exp_scores = np.exp(s)
