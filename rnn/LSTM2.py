@@ -1,4 +1,4 @@
-import itertools
+import itertools, time
 from utils import *
 from layers import *
 from task import Task
@@ -9,6 +9,7 @@ batch_size = 5
 seq_length = 5
 beta1 = .9
 beta2 = .999
+k = 3
 
 task = Task(seq_length, batch_size)
 wxh = np.random.randn(4 * hidden_size, task.vocab_size) * 1e-2
@@ -31,7 +32,11 @@ for i in itertools.count(1):
         vw = vw / (1 - beta2 ** (i + 1))
         w -= learning_rate * mw / (np.sqrt(vw) + 1e-8)
 
-    print (dict_mean(loss_history))
-    if i % 10000 == 0:
-        text = lstm_sample(task.rand_x(), wxh, whh, why, init_hc, task.vocab_size, task)
-        print (f'Loss: {dict_mean(loss_history)} \n {task.array_to_sen(text)}\n\n')
+    #print (dict_mean(loss_history))
+    if i % 100 == 0:
+        #text = lstm_sample(task.rand_x(), wxh, whh, why, init_hc, task.vocab_size, task)
+        #print (f'Loss: {dict_mean(loss_history)} \n {task.array_to_sen(text)}\n\n')
+        xs, ys = task.get_val_data()
+        val_acc = lstm_val(xs, ys, wxh, whh, why, init_hc, k, task)
+        print (val_acc)
+        time.sleep(1)

@@ -12,7 +12,7 @@ class Task:
         self.n = 0
 
         all_data = np.array([self.one_hot(char) for char in all_data])
-        tr_data, self.val_data = all_data[:1000000], all_data[1000000:]
+        tr_data, self.val_data = all_data[:10000], all_data[10000:]
         if len(tr_data) % batch_size != 0:
             tr_data = tr_data[:-(len(tr_data) % batch_size)]
         tr_data = tr_data.reshape(batch_size, -1, self.vocab_size).T
@@ -26,8 +26,10 @@ class Task:
         return xs, ys
 
     def get_val_data(self):
-        start = np.random.randnint(len(self.val_data) - 1000)
-        return self.val_data[start:start + 1000]
+        start = np.random.randint(len(self.val_data) - 1000)
+        xs = self.val_data[start:start + 1000]
+        ys = self.val_data[start + 1:start + 1001]
+        return xs, ys
 
     def one_hot(self, char=None, num=None):
         array = np.zeros((self.vocab_size))

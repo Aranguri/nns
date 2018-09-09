@@ -1,6 +1,8 @@
 Next steps:
 Try removing the s = None. Try using only one weight instead of wxh and whh
 
+try an alternative to dicts for loss_history and that stuff. maybe queues?
+
 build a framework for automatic differentation?
 
 I'm debugging the code to see what's producing the rel error of 1e-3 in the forward and backward functions. I tested lstm_step_forward, forward_affine, and softmax. I was doing something with the h_prev and c_prev. It seems that the error is related to the hs and cs
