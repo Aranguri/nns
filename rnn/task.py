@@ -1,9 +1,9 @@
 import numpy as np
 from utils import psh, expand
 
-class TextEnv:
+class Task:
     def __init__(self, seq_length, batch_size):
-        all_data = open('datasets/input.txt', 'r').read()[:11000]
+        all_data = open('/home/aranguri/Desktop/dev/nns/rnn/datasets/input.txt', 'r').read()
         self.chars = list(set(all_data))
         self.vocab_size = len(self.chars)
         self.char_to_i = {char: i for i, char in enumerate(self.chars)}
@@ -12,7 +12,7 @@ class TextEnv:
         self.n = 0
 
         all_data = np.array([self.one_hot(char) for char in all_data])
-        tr_data, self.val_data = all_data[:9000], all_data[10000:]
+        tr_data, self.val_data = all_data[:1000000], all_data[1000000:]
         if len(tr_data) % batch_size != 0:
             tr_data = tr_data[:-(len(tr_data) % batch_size)]
         tr_data = tr_data.reshape(batch_size, -1, self.vocab_size).T
@@ -36,6 +36,9 @@ class TextEnv:
         elif num != None:
             array[num] = 1
         return array
+
+    def array_to_sen(self, array):
+        return ''.join(self.i_to_char[array])
 
     def rand_x(self):
         return expand(self.one_hot(np.random.choice(self.chars)))

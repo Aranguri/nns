@@ -2,7 +2,10 @@ import numpy as np
 import itertools
 import time
 import os
+import sys
+sys.path.append('..')
 from utils import psh, expand, tanh_prime
+from task import Task
 
 class RNN:
     restore_enabled = False
@@ -21,7 +24,7 @@ class RNN:
         self.beta2 = .999
         self.reg = 0#5e-4
 
-        self.data = open('inputs/input.txt', 'r').read()
+        self.data = open('../datasets/input.txt', 'r').read()
         self.train_data, self.val_data = self.data[:900000], self.data[900000:1000000]
         self.train_size, self.val_size = len(self.train_data),len(self.val_data)
         self.chars = sorted(list(set(self.data)))
@@ -43,6 +46,7 @@ class RNN:
         if self.restore_enabled: self.restore()
 
     def run(self):
+        task = Task(self.seq_length, 1)
         mwxh, mwhh, mwhy = np.zeros_like(self.wxh), np.zeros_like(self.whh), np.zeros_like(self.why)
         mbh, mby = np.zeros_like(self.bh), np.zeros_like(self.by)
         vwxh, vwhh, vwhy = np.zeros_like(self.wxh), np.zeros_like(self.whh), np.zeros_like(self.why)
@@ -58,6 +62,7 @@ class RNN:
             targets = self.train_data[n + 1:n + self.seq_length + 1]
             inputs = np.array([self.one_hot(char) for char in inputs])
             targets = np.array([self.one_hot(char) for char in targets])
+            #inputs, targets = task.next_batch()
             dwxh, dwhh, dwhy, dbh, dby = self.loss_fun(inputs, targets)
 
             for param, dparam, mparam, vparam in zip([self.wxh, self.whh, self.why, self.bh, self.by],

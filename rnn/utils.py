@@ -73,3 +73,6 @@ def eval_numerical_gradient(f, x, h=1e-4):
 def rel_difference(a1, a2):
     #return np.sum(np.abs(a1 - a2))
     return np.max(np.abs(a1 - a2) / (np.maximum(np.abs(a1) + np.abs(a2), 1e-8)))
+
+def dict_mean(d):
+    return np.mean(list(d.values())[-100:])

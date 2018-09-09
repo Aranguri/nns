@@ -6,9 +6,9 @@ from task import TextEnv
 from plotter import plot
 
 def run():
-    hidden_size = 4
-    seq_length = 3
+    hidden_size = 3
     batch_size = 2
+    seq_length = 4
     running_times = 1000000
     learning_rate = 1e-3
     b1, b2 = .9, .999

@@ -1,25 +1,26 @@
 import itertools
 import numpy as np
+import sys
+sys.path.append('..')
 from utils import *
-from text_env import TextEnv
+from task import Task
 from plotter import plot
 
 hidden_size = 100
-seq_length = 15
-batch_size = 1
-running_times = 10000 
+seq_length = 5
+batch_size = 5
+running_times = 100000
 learning_rate = 1e-3
 b1, b2 = .9, .999
 eps = 1e-6
 
-tenv = TextEnv(seq_length, batch_size)
-tenv.validation_data()
-stop
+tenv = Task(seq_length, batch_size)
+#tenv.validation_data()
 vocab_size = tenv.vocab_size
 wxh = np.random.randn(4*hidden_size, vocab_size) * 1e-2
 whh = np.random.randn(4*hidden_size, hidden_size + 1) * 1e-2
 why = np.random.randn(vocab_size, hidden_size + 1) * 1e-2
-init_hc = lambda: (add_bias_term(np.zeros((hidden_size, batch_size))), np.zeros((hidden_size, batch_size)))
+init_hc = lambda: (add_bias(np.zeros((hidden_size, batch_size))), np.zeros((hidden_size, batch_size)))
 init_ws = lambda: (np.zeros_like(wxh), np.zeros_like(whh), np.zeros_like(why))
 ws, mws, vws = [wxh, whh, why], init_ws(), init_ws()
 loss_history = {}
@@ -34,7 +35,7 @@ def forward(xs, ys):
         i, f, o, g = sigmoid(pi), sigmoid(pf), sigmoid(po), np.tanh(pg)
         c = c * f + g * i
         tanh_c = np.tanh(c)
-        h = add_bias_term(tanh_c * o)
+        h = add_bias(tanh_c * o)
         s = why.dot(h)
         exp_scores = np.exp(s)
         scores = exp_scores / exp_scores.sum(0)
@@ -84,22 +85,22 @@ def run(learning_rate):
         dws = backward(xs, ys, cache)
 
         for w, dw, mw, vw in zip(ws, dws, mws, vws):
-            #mw = b1 * mw + (1 - b1) * dw
-            #mw /= (1 - b1 ** i)
-            #vw = b2 * vw + (1 - b2) * dw ** 2
-            #vw /= (1 - b2 ** i)
-            w -= learning_rate * dw#mw / (np.sqrt(vw) + eps)
+            mw = b1 * mw + (1 - b1) * dw
+            mw /= (1 - b1 ** i)
+            vw = b2 * vw + (1 - b2) * dw ** 2
+            vw /= (1 - b2 ** i)
+            w -= learning_rate * mw / (np.sqrt(vw) + eps)
 
-        if i % 100 == 0:
+        if i % 200 == 0:
             x, (h, c) = tenv.rand_x(), init_hc()
             h, c = expand(h[:, 0]), expand(c[:, 0])
             text = ''
 
-            for t in range(400):
+            for t in range(200):
                 v = whh.dot(h) + wxh.dot(x)
                 pi, pf, po, pg = np.split(v, 4)
                 c = c * sigmoid(pf) + np.tanh(pg) * sigmoid(pi)
-                h = add_bias_term(np.tanh(c) * sigmoid(po))
+                h = add_bias(np.tanh(c) * sigmoid(po))
                 s = why.dot(h)
                 scores = np.exp(s) / np.exp(s).sum()
                 x = np.random.choice(range(vocab_size), p=scores[:, 0])
@@ -107,3 +108,5 @@ def run(learning_rate):
                 x = expand(tenv.one_hot(num=x))
             print ('\n-------\nLoss: {}\n{}\n------\n'.format(loss_history[i], text))
     return loss_history
+
+run(learning_rate)

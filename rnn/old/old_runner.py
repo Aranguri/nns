@@ -2,7 +2,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from char_rnn_v5 import RNN
-from utils import points_to_curve
+#from utils import points_to_curve
 
 models = [{'exp_name': 'large-training-2'}]#[{'update': 'adam', 'exp_name': 'adam-lr:1e-4v2', 'lr': 5e-3}]#, {'update': 'adam', 'exp_name': 'adam-lr:1e-3', 'lr': 1e-3}, {'update': 'adam', 'exp_name': 'adam-lr:1e-4', 'lr': 1e-4}]#, {'update': 'sgd', 'exp_name': 'sgd4'}]#,
 

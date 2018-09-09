@@ -4,10 +4,7 @@ from utils import *
 def lstm_forward(xs, ys, wxh, whh, why, init_hc):
     (h, c), caches, loss_acc = init_hc(), {}, 0
     for t, (x, y) in enumerate(zip(xs, ys)):
-        h, c, cache_lstm = lstm_forward_step(x, h, c, wxh, whh)
-        s, cache_affine = affine_forward(h, why)
-        loss, cache_softmax = softmax_forward(s, y)
-        caches[t] = cache_lstm, cache_affine, cache_softmax
+        h, c, loss, caches[t] = lstm_affine_softmax_forward
         loss_acc += loss
     return loss_acc, caches
 
@@ -20,6 +17,22 @@ def lstm_backward(caches, init_hc, init_ws):
         dwxh, dwhh, dh, dc = lstm_backward_step(da + dh, dc, cache_lstm)
         dws += [dwxh, dwhh, dwhy]
     return dws
+
+def lstm_sample(x, wxh, whh, why, init_hc, vocab_size, task):
+    (h, c), out = init_hc(1), {}
+    for t in range(200):
+        h, c, _ = lstm_forward_step(x, h, c, wxh, whh)
+        s, _ = affine_forward(h, why)
+        p = np.exp(s) / np.exp(s).sum()
+        out[t] = np.random.choice(range(vocab_size), p=normalize(p))
+        x = expand(task.one_hot(num=out[t]))
+    return list(out.values())
+
+def lstm_full_forward(x, h, c, wxh, whh, why, y):
+    h, c, cache_lstm = lstm_forward_step(x, h, c, wxh, whh)
+    s, cache_affine = affine_forward(h, why)
+    loss, cache_softmax = softmax_forward(s, y)
+    return h, c, loss, (cache_lstm, cache_affine, cache_softmax)
 
 def lstm_forward_step(x, h_prev, c_prev, wxh, whh):
     #affine
@@ -89,13 +102,3 @@ def softmax_backward(cache):
     p, y = cache
     p[y, range(len(y))] -= 1
     return p
-
-def lstm_sample(x, wxh, whh, why, init_hc, vocab_size, task):
-    (h, c), out = init_hc(1), {}
-    for t in range(200):
-        h, c, _ = lstm_forward_step(x, h, c, wxh, whh)
-        s, _ = affine_forward(h, why)
-        p = np.exp(s) / np.exp(s).sum()
-        out[t] = np.random.choice(range(vocab_size), p=normalize(p))
-        x = expand(task.one_hot(num=out[t]))
-    return list(out.values())

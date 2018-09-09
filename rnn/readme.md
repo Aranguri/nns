@@ -84,3 +84,13 @@ Training log
 adam, clip, lr:3e-4, b1=.999, b2=.9, 10k it => vacc=.5, vloss=3  (no 'rebote' just a plateau)
 adam, clip, lr:1e-4, b1=.999, b2=.9, 20k it  => vacc=.5, vloss=2.6
 adam, clip, lr:1e-5, b1=.999, b2=.9, 20k it  => vacc=, vloss=
+
+
+def flstm(whh):
+    return lstm_forward(x, y, wxh, whh, why, init_hc)
+grad = eval_numerical_gradient(flstm, whh)
+print ('Numerical: ', grad)
+loss, caches = flstm(whh)
+dwxh, dwhh, dwhy = lstm_backward(caches, init_hc, init_ws)
+print ('Analytical', dwhh)
+print (rel_difference(grad, dwhh))
