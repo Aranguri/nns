@@ -105,7 +105,7 @@ def run(learning_rate):
                 scores = np.exp(s) / np.exp(s).sum()
                 x = np.random.choice(range(vocab_size), p=scores[:, 0])
                 text += tenv.i_to_char[x]
-                x = expand(tenv.one_hot(num=x))
+                x = expand(tenv.one_of_k(num=x))
             print ('\n-------\nLoss: {}\n{}\n------\n'.format(loss_history[i], text))
     return loss_history
 

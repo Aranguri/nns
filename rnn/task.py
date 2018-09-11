@@ -1,18 +1,18 @@
 import numpy as np
-from utils import psh, expand
+from utils import ps, expand
 
 class Task:
     def __init__(self, seq_length, batch_size):
-        all_data = open('/home/aranguri/Desktop/dev/nns/rnn/datasets/input.txt', 'r').read()
-        self.chars = list(set(all_data))
+        all_data = open('/home/aranguri/Desktop/dev/nns/rnn/datasets/input2.txt', 'r').read()
+        self.chars = list(sorted(set(all_data)))
         self.vocab_size = len(self.chars)
         self.char_to_i = {char: i for i, char in enumerate(self.chars)}
         self.i_to_char = np.array(self.chars)
         self.seq_length = seq_length
         self.n = 0
 
-        all_data = np.array([self.one_hot(char) for char in all_data])
-        tr_data, self.val_data = all_data[:10000], all_data[10000:]
+        all_data = np.array([self.one_of_k(char) for char in all_data])
+        tr_data, self.val_data = all_data[:300000], all_data[300000:310000]
         if len(tr_data) % batch_size != 0:
             tr_data = tr_data[:-(len(tr_data) % batch_size)]
         tr_data = tr_data.reshape(batch_size, -1, self.vocab_size).T
@@ -31,7 +31,7 @@ class Task:
         ys = self.val_data[start + 1:start + 1001]
         return xs, ys
 
-    def one_hot(self, char=None, num=None):
+    def one_of_k(self, char=None, num=None):
         array = np.zeros((self.vocab_size))
         if char != None:
             array[self.char_to_i[char]] = 1
@@ -43,4 +43,4 @@ class Task:
         return ''.join(self.i_to_char[array])
 
     def rand_x(self):
-        return expand(self.one_hot(np.random.choice(self.chars)))
+        return expand(self.one_of_k(np.random.choice(self.chars)))

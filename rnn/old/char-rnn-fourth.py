@@ -1,5 +1,5 @@
 import numpy as np
-from utils import psh, one_hot, expand, tanh_prime
+from utils import psh, one_of_k, expand, tanh_prime
 
 learning_rate = 3e-3
 hidden_size = 150
@@ -49,7 +49,7 @@ def loss_fun(inputs, targets, h_prev):
     return loss, dwxh, dwhh, dwhy, dbh, dby, h[-1]
 
 def sample():
-    xs = {0: one_hot(char_to_i[np.random.choice(chars)], vocab_size)}
+    xs = {0: one_of_k(char_to_i[np.random.choice(chars)], vocab_size)}
     h = {-1: np.zeros((1, hidden_size))}
     print ('\n\n')
     for t in range(100):
@@ -57,7 +57,7 @@ def sample():
         y = h[t].dot(why) + by
         softmax = np.exp(y) / np.exp(y).sum()
         next_i = np.random.choice(vocab_size, p=softmax[0])
-        xs[t + 1] = one_hot(next_i, vocab_size)
+        xs[t + 1] = one_of_k(next_i, vocab_size)
         print(i_to_char[next_i], end='')
     print ('\n\n')
 
@@ -72,8 +72,8 @@ while True:
 
     inputs = data[i:i + seq_length]
     targets = data[i + 1:i + 1 + seq_length]
-    inputs = np.array([one_hot(char_to_i[char], vocab_size) for char in inputs])
-    targets = np.array([one_hot(char_to_i[char], vocab_size) for char in targets])
+    inputs = np.array([one_of_k(char_to_i[char], vocab_size) for char in inputs])
+    targets = np.array([one_of_k(char_to_i[char], vocab_size) for char in targets])
     loss, dwxh, dwhh, dwhy, dbh, dby, h_prev = loss_fun(inputs, targets, h_prev)
 
     #print (loss)
@@ -87,15 +87,3 @@ while True:
         print (smooth_loss)
 
     i += 1
-
-
-'''
-Las perlitas:
---
-e
-Iacricnse roing ereands
-p poierrs dring endands
-I procrastinate doing errands
-I prico errarostinas
----
-'''

@@ -60,8 +60,8 @@ class RNN:
 
             inputs = self.train_data[n:n + self.seq_length]
             targets = self.train_data[n + 1:n + self.seq_length + 1]
-            inputs = np.array([self.one_hot(char) for char in inputs])
-            targets = np.array([self.one_hot(char) for char in targets])
+            inputs = np.array([self.one_of_k(char) for char in inputs])
+            targets = np.array([self.one_of_k(char) for char in targets])
             #inputs, targets = task.next_batch()
             dwxh, dwhh, dwhy, dbh, dby = self.loss_fun(inputs, targets)
 
@@ -129,7 +129,7 @@ class RNN:
             total_loss = 0
 
             for char, next_char in zip(self.train_data[i:i+1000], self.train_data[i+1:i+1001]):
-                h, y, _, loss = self.forward(self.one_hot(char), h, self.char_to_i[next_char])
+                h, y, _, loss = self.forward(self.one_of_k(char), h, self.char_to_i[next_char])
                 total_loss += loss + self.reg * .5 * (np.sum(self.wxh**2) + np.sum(self.whh**2) + np.sum(self.why**2))
                 topk = np.argpartition(y[0], -self.k)[-self.k:]
                 self.train_accuracy[-1] += next_char in self.i_to_char[topk]
@@ -145,7 +145,7 @@ class RNN:
             total_loss = 0
 
             for char, next_char in zip(self.val_data[i:i+1000], self.val_data[i+1:i+1001]):
-                h, y, _, loss = self.forward(self.one_hot(char), h, self.char_to_i[next_char])
+                h, y, _, loss = self.forward(self.one_of_k(char), h, self.char_to_i[next_char])
                 total_loss += loss + self.reg * .5 * (np.sum(self.wxh**2) + np.sum(self.whh**2) + np.sum(self.why**2))
                 topk = np.argpartition(y[0], -self.k)[-self.k:]
                 self.val_accuracy[-1] += next_char in self.i_to_char[topk]
@@ -155,12 +155,12 @@ class RNN:
             print ('Val loss:   {:.2f}. Val acc:   {:.2f}. It: {}'.format(self.val_loss[-1], self.val_accuracy[-1], it))
 
         if 'sample' in self.mode:
-            xs = {0: self.one_hot(np.random.choice(self.chars))}
+            xs = {0: self.one_of_k(np.random.choice(self.chars))}
             h = {-1: np.zeros((1, self.hidden_size))}
             for t in range(200):
                 h[t], y, softmax, _ = self.forward(xs[t], h[t - 1])
                 next_i = np.random.choice(self.vocab_size, p=softmax[0])
-                xs[t + 1] = self.one_hot(self.i_to_char[next_i])
+                xs[t + 1] = self.one_of_k(self.i_to_char[next_i])
             print (''.join([self.i_to_char[x.argmax()] for x in xs.values()]))
             print ('\n\n')
 
@@ -168,7 +168,7 @@ class RNN:
             self.save()
 
 
-    def one_hot(self, char):
+    def one_of_k(self, char):
         array = np.zeros((self.vocab_size))
         array[self.char_to_i[char]] = 1
         return array

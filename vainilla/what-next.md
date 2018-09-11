@@ -1,6 +1,3 @@
-#suggestions
-do feature-testing in other sessions than when I'm coding features
-
 #technical
 try cross entropy function
 learning_rate decay

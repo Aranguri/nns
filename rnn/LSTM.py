@@ -1,65 +1,40 @@
 import itertools
-import numpy as np
+from time import time
 from utils import *
 from layers import *
-from task import TextEnv
+from optimizer import *
 from plotter import plot
+from task import Task
 
-def run():
-    hidden_size = 3
-    batch_size = 2
-    seq_length = 4
-    running_times = 1000000
-    learning_rate = 1e-3
-    b1, b2 = .9, .999
-    eps = 1e-6
+hidden_size = 100
+batch_size = 150
+seq_length = 8
+k = 3
+exp_name = '>50 top1 i2'
+itime = time()
 
-    tenv = TextEnv(seq_length, batch_size)
-    vocab_size = tenv.vocab_size
-    np.random.seed(1)
-    wxh = np.random.randn(4*hidden_size, vocab_size) * 1e-2
-    whh = np.random.randn(4*hidden_size, hidden_size + 1) * 1e-2
-    why = np.random.randn(vocab_size, hidden_size + 1) * 1e-2
-    init_hc = lambda: (np.zeros((hidden_size, batch_size)), np.zeros((hidden_size, batch_size)))
-    init_ws = lambda: (np.zeros_like(wxh), np.zeros_like(whh), np.zeros_like(why))
-    ws, mws, vws = [wxh, whh, why], init_ws(), init_ws()
-    loss_history = {}
+task = Task(seq_length, batch_size)
+ws = [np.random.randn(4 * hidden_size, task.vocab_size + hidden_size + 1) * 1e-3,
+      np.random.randn(task.vocab_size, hidden_size + 1) * 1e-3]
+init_hc = lambda n=batch_size: np.zeros((2, hidden_size, n))
+init_ws = lambda: np.zeros_like(ws)
+optimizer = Adam(init_ws)
+tr_loss, val_acc, n = {}, {}, 0
+ws, tr_loss, val_acc, n = restore(exp_name)
 
-    xs, ys = tenv.next_batch()
+for i in itertools.count(n):
+    xs, ys = task.next_batch()
+    tr_loss[i], caches = lstm_forward(xs, ys, ws, init_hc, task)
+    dws = lstm_backward(caches, init_hc, init_ws)
+    ws = optimizer.update(ws, dws)
 
-    def forward(wxh):
-        return forward_lstm(xs, ys, wxh, whh, why, init_hc)
+    if i % 100 == 0:
+        xs, ys = task.get_val_data()
+        val_acc[i] = lstm_val(xs, ys, ws, init_hc, k, task)
+        #print (f'Val acc: {val_acc[i]/1000}. Time {round(time() - itime)}')
+        #text = lstm_sample(task.rand_x(), ws, init_hc, task.vocab_size, task)
+        #print (f'Loss: {dict_mean(tr_loss)} \n {task.array_to_sen(text)}\n\n')
 
-    def backward(cache):
-        return backward_lstm(ys, cache, init_hc, init_ws)
-
-    grad = eval_numerical_gradient(forward, wxh)
-    print ('Numerical: ', grad)
-    s, cache = forward(wxh)
-    (dwxh, dwhh, dwhy), loss = backward(cache)
-    print ('Analytical: ', dwxh)
-    print ('Diff', rel_difference(grad, dwxh))
-
-    '''
-    for i in range(1, running_times):
-        xs, ys = tenv.next_batch()
-        s, cache = forward_lstm(xs, wxh, whh, why, init_hc)
-        dws, loss_history[i] = backward_lstm(ys, cache, init_hc, init_ws)
-
-        for w, dw, mw, vw in zip(ws, dws, mws, vws):
-            # mw = b1 * mw + (1 - b1) * dw
-            # mw /= (1 - b1 ** i)
-            # vw = b2 * vw + (1 - b2) * dw ** 2
-            # vw /= (1 - b2 ** i)
-            w -= learning_rate * dw#mw / (np.sqrt(vw) + eps)
-
-        if (i + 1) % 10000 == 0: plot(loss_history)
-
-        if i % 100 == 0:
-            scores = lstm_sample(tenv.rand_x(), wxh, whh, why, hidden_size, vocab_size)
-            text = ''.join([tenv.i_to_char[s] for s in scores])
-            print ('\n-------\nLoss: {:.2f} It: {}\n{}\n------\n'.format(loss_history[i], i, text))
-    return loss_history
-    '''
-
-run()
+    if (i + 1) % 300 == 0:
+        save(exp_name, ws, tr_loss, val_acc, i)
+        #plot(val_acc)
