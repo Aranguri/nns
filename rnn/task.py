@@ -26,7 +26,7 @@ class Task:
         return xs, ys
 
     def get_val_data(self):
-        start = np.random.randint(len(self.val_data) - 1000)
+        start = 0#np.random.randint(len(self.val_data) - 1000)
         xs = self.val_data[start:start + 1000]
         ys = self.val_data[start + 1:start + 1001]
         return xs, ys

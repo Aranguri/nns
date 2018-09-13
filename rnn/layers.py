@@ -27,19 +27,13 @@ def lstm_sample(x, ws, init_hc, vocab_size, task):
         x = expand(task.one_of_k(num=out[t]))
     return list(out.values())
 
-def lstm_val(xs, ys, ws, init_hc, k, task):
-    init_cprint()
+def lstm_val(xs, ys, ws, init_hc, task):
     (h, c), val_acc = init_hc(1), 0
-    #val_acc = {i: [] for i in range(task.vocab_size)}
     for t, (x, y) in enumerate(zip(xs, ys)):
         x = expand(x)
         h, c, _, p, _ = lstm_full_forward(x, h, c, ws, y=None)
-        char = task.i_to_char[np.argmax(x, 0)[0]]
-        cprint(char, h[28, 0])
-        #top_k = np.argpartition(p[:, 0], -k)[-k:]
-        #val_acc[np.argmax(y)].append(p[np.argmax(y), 0] > .5) # in top_k
         val_acc += p[np.argmax(y), 0] > .5
-    return val_acc
+    return val_acc/1000
 
 def lstm_full_forward(x, h, c, ws, y):
     wh, wy = ws

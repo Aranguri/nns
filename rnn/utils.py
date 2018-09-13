@@ -66,7 +66,6 @@ def dict_mean(d):
 def save(name, *args):
     with open(f'savings/{name}.pkl', 'wb') as f:
         pickle.dump(args, f)
-    print ('net saved')
 
 def restore(name):
     with open(f'savings/{name}.pkl', 'rb') as f:
