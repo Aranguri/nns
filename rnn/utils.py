@@ -41,7 +41,7 @@ def points_to_curve(y):
 
 def eval_numerical_gradient(f, x, h=1e-4):
     grad = np.zeros_like(x)
-    it = np.nditer(x, flags=['multi_index'])
+    it = np.nditer(x, flags=['multi_index'])#, op_flags=['readwrite'])
 
     while not it.finished:
         i = it.multi_index

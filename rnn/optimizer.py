@@ -1,7 +1,8 @@
 import numpy as np
+from utils import *
 
 class Adam:
-    def __init__(self, init_ws, lr=1e-2, b1=.9, b2=.999):
+    def __init__(self, init_ws, lr=1e-1, b1=.9, b2=.999):
         self.lr = lr
         self.b1 = b1
         self.b2 = b2
@@ -14,7 +15,7 @@ class Adam:
             vw = self.b2 * vw + (1 - self.b2) * dw ** 2
             mw = mw / (1 - self.b1 ** (self.i + 1))
             vw = vw / (1 - self.b2 ** (self.i + 1))
-            w -= self.lr * mw / (np.sqrt(vw) + 1e-8)
+            w -= self.lr * mw / (vw ** (1/2) + 1e-8)
 
         self.i += 1
         return ws

@@ -2,42 +2,51 @@ import numpy as np
 from utils import *
 from basic_layers import *
 
-def lstm_forward(xs, ys, ws, init_hc, task):
-    (h, c), caches, loss_acc = init_hc(), {}, 0
+def lstm_forward(xs, ys, whs, wy, init_hscs, task):
+    (hs, cs), caches, loss_acc = init_hscs(), {}, 0
     for t, (x, y) in enumerate(zip(xs, ys)):
-        h, c, loss, _, caches[t] = lstm_full_forward(x, h, c, ws, y)
+        hs, cs, loss, _, caches[t] = lstm_full_forward(x, hs, cs, whs, wy, y)
         loss_acc += loss
     return loss_acc, caches
 
-def lstm_backward(caches, init_hc, init_ws):
-    (dh, dc), dws = init_hc(), init_ws()
+def lstm_backward(caches, init_hscs, init_whs, init_wy):
+    (dhs, dcs) = init_hscs()
+    dwhs_acc, dwy_acc = init_whs(), init_wy()
     for cache in reversed(list(caches.values())):
-        cache_lstm, cache_affine, cache_sotfmax = cache
+        cache_lstms, cache_affine, cache_sotfmax = cache
         ds = softmax_backward(cache_sotfmax)
         da, dwy = affine_backward(ds, cache_affine)
-        dwh, dh, dc = lstm_backward_step(da + dh, dc, cache_lstm)
-        dws += [dwh, dwy]
-    return dws
+        dhs[-1] = da
+        for i, cache_lstm in reversed(list(enumerate(cache_lstms))):
+            dhs_, dcs_ = (dhs[i+1], dcs[i+1]) if i != len(cache_lstms) - 1 else (da, dcs[0])
+            dwhs, dhs[i], dcs[i] = lstm_backward_step(dhs_, dcs_, cache_lstm)
+            dwhs_acc[i] += dwhs
+        dwy_acc += dwy
+    return dwhs_acc, dwy_acc
 
-def lstm_sample(x, ws, init_hc, vocab_size, task):
-    (h, c), out = init_hc(1), {}
+def lstm_sample(x, ws, init_hscs, vocab_size, task):
+    (hs, cs), out = init_hscs(1), {}
     for t in range(200):
-        p = lstm_full_forward(x, h, c, ws, y=None)[3][:, 0]
+        p = lstm_full_forward(x, hs, cs, ws, y=None)[3][:, 0]
         out[t] = np.random.choice(range(vocab_size), p=p)
         x = expand(task.one_of_k(num=out[t]))
     return list(out.values())
 
-def lstm_val(xs, ys, ws, init_hc, task):
-    (h, c), val_acc = init_hc(1), 0
+def lstm_val(xs, ys, ws, init_hscs, task):
+    (hs, cs), val_acc = init_hscs(1), 0
     for t, (x, y) in enumerate(zip(xs, ys)):
         x = expand(x)
-        h, c, _, p, _ = lstm_full_forward(x, h, c, ws, y=None)
+        hs, cs, _, p, _ = lstm_full_forward(x, hs, cs, ws, y=None)
         val_acc += p[np.argmax(y), 0] > .5
     return val_acc/1000
 
-def lstm_full_forward(x, h, c, ws, y):
-    wh, wy = ws
-    h, c, cache_lstm = lstm_forward_step(x, h, c, wh)
-    s, cache_affine = affine_forward(h, wy)
+def lstm_full_forward(x, hs_prev, cs_prev, whs, wy, y):
+    hs, cs, cache_lstms = {-1: x}, {}, {}
+    for i, (h_prev, c_prev, wh) in enumerate(zip(hs_prev, cs_prev, whs)):
+        hs[i], cs[i], cache_lstms[i] = lstm_forward_step(hs[i-1], h_prev, c_prev, wh)
+    s, cache_affine = affine_forward(hs[len(whs) - 1], wy)
     loss, p, cache_softmax = softmax_forward(s, y)
-    return h, c, loss, p, (cache_lstm, cache_affine, cache_softmax)
+    hs = list(hs.values())[1:]
+    cs = list(cs.values())
+    cache_lstms = list(cache_lstms.values())
+    return hs, cs, loss, p, (cache_lstms, cache_affine, cache_softmax)

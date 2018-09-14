@@ -2,7 +2,7 @@
 Build something that in test-mode acts in a conversational way, like a chat. (in the future, it can learn to perform actions besides talking. One of these actions could be looking in the internet for more information.) So, the idea is to create something alive. We can define a validation metric and improve it. The first step seems to be the structure for that problem (looking for the dataset, seeing how I can encode the question/message by the other person.) That seems the right problem, after that we can entirely focus on adding technical features.
 
 #New features
-1) more layers
+1) more layers. (next step: check the gradient to see if it's correct.)
 2) l2 regularization
 3) clip gradients
 4) Visualize features as it was done in karpathy's paper
@@ -34,6 +34,9 @@ Do:
 * http://www.arxiv-sanity.com/1506.02078v2
 * Cite 28 there
 * map with all the possible thigns to do to a nn
+
+#how to use eval_numerical_gradient
+create a function that calls the desired function to evaluate. don't create random variables inside that function.
 
 #Ideas
 * one way to solve the truncated backprop thing: use the gradients of the 'pasada' t-1, they are old, but they may have imp information.
@@ -108,3 +111,6 @@ it detects ends of the words: but, to, not, by, and, go, do, of, what, that (it 
 ##14
 Red with \n
 Green with the first letter of a sentence
+
+# Benchmarks
+Input 2, hidden_size = 100, batch_size = 50, seq_length = 8: peaked at .33

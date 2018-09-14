@@ -11,6 +11,6 @@ def plot(array):
         array = [v for v in array.values()]
     lim = 2 ** (1 + int(np.log2(len(array))))
     plt.xlim(0, lim)
-    plt.ylim(0, .6)
+    plt.ylim(0, 2000)#.6)
     plt.plot(array)
     plt.pause(1e-3)
