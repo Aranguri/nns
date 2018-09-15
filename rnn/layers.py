@@ -2,29 +2,22 @@ import numpy as np
 from utils import *
 from basic_layers import *
 
-def lstm_forward(xs, ys, whs, wy, init_hscs, task):
-    (hs, cs), caches, loss_acc = init_hscs(), {}, 0
+def lstm_forward(xs, ys, whs, wy, init_hscs):
+    (hs, cs), caches, losses = init_hscs(), {}, {}
     for t, (x, y) in enumerate(zip(xs, ys)):
-        hs, cs, loss, _, caches[t] = lstm_full_forward(x, hs, cs, whs, wy, y)
-        loss_acc += loss
-    return loss_acc, caches
+        hs, cs, losses[t], _, caches[t] = lstm_full_forward(x, hs, cs, whs, wy, y)
+    return dict_sum(losses), caches
 
-def lstm_backward(caches, init_hscs, init_whs, init_wy):
-    (dhs, dcs) = init_hscs()
-    dwhs_acc, dwy_acc = init_whs(), init_wy()
-    for cache in reversed(list(caches.values())):
-        cache_lstms, cache_affine, cache_sotfmax = cache
-        ds = softmax_backward(cache_sotfmax)
-        da, dwy = affine_backward(ds, cache_affine)
-        new_dhs, new_dcs = init_hscs()
+def lstm_backward(caches, init_hscs, init_whs):
+    (dhs, dcs), dwhs_acc, dwy = init_hscs(), init_whs(), {}
+    for t, (cache_lstms, cache_affine, cache_softmax) in enumerate(reversed(list(caches.values()))):
+        ds = softmax_backward(cache_softmax)
+        above_dh, dwy[t] = affine_backward(ds, cache_affine)
         for i, cache_lstm in reversed(list(enumerate(cache_lstms))):
-            above_dh = new_dhs[i+1] if i != len(cache_lstms) - 1 else da #Same timestep, one layer above
-            next_dh, next_dc = dhs[i], dcs[i]#Same layer, next timestep
-            dwhs, new_dhs[i], new_dcs[i] = lstm_backward_step(above_dh + next_dh, next_dc, cache_lstm)
+            #dhs, dcs in assign => t. dhs, dcs in params => t + 1.
+            dwhs, above_dh, dhs[i], dcs[i] = lstm_backward_step(above_dh + dhs[i], dcs[i], cache_lstm)
             dwhs_acc[i] += dwhs
-        dhs, dcs = new_dhs, new_dcs
-        dwy_acc += dwy
-    return dwhs_acc, dwy_acc
+    return dwhs_acc, dict_sum(dwy)
 
 def lstm_sample(x, ws, init_hscs, vocab_size, task):
     (hs, cs), out = init_hscs(1), {}

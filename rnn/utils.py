@@ -63,6 +63,10 @@ def rel_difference(a1, a2):
 def dict_mean(d):
     return np.mean(list(d.values())[-100:])
 
+def dict_sum(d):
+    values = np.array([v for v in d.values()])
+    return values.sum(0)
+
 def save(name, *args):
     with open(f'savings/{name}.pkl', 'wb') as f:
         pickle.dump(args, f)
