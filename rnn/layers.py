@@ -16,11 +16,13 @@ def lstm_backward(caches, init_hscs, init_whs, init_wy):
         cache_lstms, cache_affine, cache_sotfmax = cache
         ds = softmax_backward(cache_sotfmax)
         da, dwy = affine_backward(ds, cache_affine)
-        dhs[-1] = da
+        new_dhs, new_dcs = init_hscs()
         for i, cache_lstm in reversed(list(enumerate(cache_lstms))):
-            dhs_, dcs_ = (dhs[i+1], dcs[i+1]) if i != len(cache_lstms) - 1 else (da, dcs[0])
-            dwhs, dhs[i], dcs[i] = lstm_backward_step(dhs_, dcs_, cache_lstm)
+            above_dh = new_dhs[i+1] if i != len(cache_lstms) - 1 else da #Same timestep, one layer above
+            next_dh, next_dc = dhs[i], dcs[i]#Same layer, next timestep
+            dwhs, new_dhs[i], new_dcs[i] = lstm_backward_step(above_dh + next_dh, next_dc, cache_lstm)
             dwhs_acc[i] += dwhs
+        dhs, dcs = new_dhs, new_dcs
         dwy_acc += dwy
     return dwhs_acc, dwy_acc
 
