@@ -2,10 +2,10 @@ import numpy as np
 from utils import *
 from basic_layers import *
 
-def lstm_forward(xs, ys, whs, wy, init_hscs):
+def lstm_forward(xs, ys, ws, init_hscs):
     (hs, cs), caches, losses = init_hscs(), {}, {}
     for t, (x, y) in enumerate(zip(xs, ys)):
-        hs, cs, losses[t], _, caches[t] = lstm_full_forward(x, hs, cs, whs, wy, y)
+        hs, cs, losses[t], _, caches[t] = lstm_full_forward(x, hs, cs, ws, y)
     return dict_sum(losses), caches
 
 def lstm_backward(caches, init_hscs, init_whs):
@@ -35,7 +35,8 @@ def lstm_val(xs, ys, ws, init_hscs, task):
         val_acc += p[np.argmax(y), 0] > .5
     return val_acc/1000
 
-def lstm_full_forward(x, hs_prev, cs_prev, whs, wy, y):
+def lstm_full_forward(x, hs_prev, cs_prev, ws, y):
+    whs, wy = ws
     hs, cs, cache_lstms = {-1: x}, {}, {}
     for i, (h_prev, c_prev, wh) in enumerate(zip(hs_prev, cs_prev, whs)):
         hs[i], cs[i], cache_lstms[i] = lstm_forward_step(hs[i-1], h_prev, c_prev, wh)

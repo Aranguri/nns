@@ -2,6 +2,8 @@
 Build something that in test-mode acts in a conversational way, like a chat. (in the future, it can learn to perform actions besides talking. One of these actions could be looking in the internet for more information.) So, the idea is to create something alive. We can define a validation metric and improve it. The first step seems to be the structure for that problem (looking for the dataset, seeing how I can encode the question/message by the other person.) That seems the right problem, after that we can entirely focus on adding technical features.
 
 #New features
+Ordenar. Maybe what's failing is adam.
+
 1) more layers. (next step: check the gradient to see if it's correct.)
 2) l2 regularization
 3) clip gradients
@@ -37,6 +39,27 @@ Do:
 
 #how to use eval_numerical_gradient
 create a function that calls the desired function to evaluate. don't create random variables inside that function.
+
+whs1 = np.random.randn(4 * hidden_size, vocab_size + hidden_size + 1)
+whs2 = [np.random.randn(4 * hidden_size, 2 * hidden_size + 1)] * (num_layers - 1)
+whs_added = np.random.randn(4 * hidden_size, 2 * hidden_size + 1)
+pos = 8
+xs = np.random.randn(seq_length, vocab_size, batch_size)
+ys = np.random.randint(0, vocab_size, size=(seq_length, batch_size))
+
+def flstm(whs_added):
+    whs = np.empty(num_layers, dtype=object)
+    whs[0] = whs1
+    whs[1:] = whs2
+    whs[pos] = whs_added
+    return lstm_forward(xs, ys, whs, wy, init_hscs)
+
+loss, caches = flstm(whs_added)
+dwhs, dwy = lstm_backward(caches, init_hscs, init_whs)
+dws_num = eval_numerical_gradient(flstm, whs_added)
+
+print (dws_num, '\n', dwhs[pos], '\n', dws_num.shape, dwhs[pos].shape)
+print (rel_difference(dws_num, dwhs[pos]))
 
 #Ideas
 * one way to solve the truncated backprop thing: use the gradients of the 'pasada' t-1, they are old, but they may have imp information.

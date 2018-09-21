@@ -30,8 +30,13 @@ def normalize(array):
     return array / np.sum(array)
 
 def one_of_k(pos, length):
-    array = np.zeros((length))
-    array[pos] = 1
+    if type(pos) == list or type(pos) == np.ndarray:
+        array = np.zeros((length * len(pos)))
+        for i, p in enumerate(pos):
+            array[i * length + p] = 1
+    else:
+        array = np.zeros((length))
+        array[pos] = 1
     return array
 
 def points_to_curve(y):
@@ -58,10 +63,13 @@ def eval_numerical_gradient(f, x, h=1e-4):
     return grad
 
 def rel_difference(a1, a2):
-    return np.max(np.abs(a1 - a2) / (np.maximum(np.abs(a1) + np.abs(a2), 1e-8)))
+    return np.max(np.abs(a1 - a2) / (np.maximum.reduce([np.abs(a1), np.abs(a2), np.ones_like(a2) * 1e-15])))
+
+def dict_max(d):
+    return np.max(list(d.values()))
 
 def dict_mean(d):
-    return np.mean(list(d.values())[-100:])
+    return np.mean(list(d.values()))
 
 def dict_sum(d):
     values = np.array([v for v in d.values()])

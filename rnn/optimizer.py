@@ -19,3 +19,23 @@ class Adam:
 
         self.i += 1
         return ws
+
+class SGD:
+    def __init__(self, lr=1e-2):
+        self.lr = lr
+
+    def update(self, ws, dws):
+        for w, dw in zip(ws, dws):
+            w -= self.lr * dw
+        return ws
+
+class Adagrad:
+    def __init__(self, init_ws, lr=1e-1):
+        self.lr = lr
+        self.mws = init_ws()
+
+    def update(self, ws, dws):
+        for w, dw, mw in zip(ws, dws, self.mws):
+            mw += dw ** 2
+            w -= self.lr * dw / ((mw ** (1/2) + 1e-12))
+        return ws
