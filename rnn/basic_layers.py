@@ -44,11 +44,8 @@ def lstm_backward_step(dout, dc_out, cache):
     dwh_below = dv.dot(h_below.T)
     dwh_prev = dv.dot(add_bias(h_prev).T)
     dwh = np.concatenate((dwh_below, dwh_prev), 1)
-    #ps(wh)
 
     wh_below = wh[:, :len(h_below)] #first h items of wh
-    #print (len(h_below))
-    #ps(wh_below)
     wh_prev = wh[:, len(h_below):] #last h items of wh
     dh_below = wh_below.T.dot(dv)
     dh_prev = remove_bias(wh_prev.T).dot(dv)
@@ -64,6 +61,30 @@ def affine_backward(dout, cache):
     dx = w.T.dot(dout)[:-1] # :-1 removes the bias
     dw = dout.dot(x.T)
     return dx, dw
+
+def act_fn_forward(x, w, fn):
+    x = add_bias(x)
+    s = w.dot(x)
+    a = fn(s)
+    return a, (x, w, s)
+
+def act_fn_backward(dout, fn_prime, cache):
+    x, w, s = cache
+    ds = fn_prime(s) * dout
+    dx = w.T.dot(ds)[:-1]
+    dw = ds.dot(x.T)
+    return dx, dw
+
+def embed_forward(xs, w):
+    a = np.concatenate([w.dot(x) for x in xs])
+    return a, (a, xs, w)
+
+def embed_backward(dout, cache):
+    a, xs, w = cache
+    das = np.split(dout, len(a) / len(w))
+    dxs = [da.T.dot(w) for da in das]
+    dw = sum([da.dot(x.T) for da, x in zip(das, xs)])
+    return dw, dxs
 
 def softmax_forward(s, y=None):
     exp_s = np.exp(s)

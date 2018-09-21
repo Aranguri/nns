@@ -3,7 +3,7 @@ from utils import ps, expand
 
 class Task:
     def __init__(self, seq_length, batch_size):
-        all_data = open('/home/aranguri/Desktop/dev/nns/rnn/datasets/input2.txt', 'r').read()
+        all_data = open('/home/aranguri/Desktop/dev/nns/rnn/datasets/input_tf.txt', 'r').read()
         self.chars = list(sorted(set(all_data)))
         self.vocab_size = len(self.chars)
         self.char_to_i = {char: i for i, char in enumerate(self.chars)}
