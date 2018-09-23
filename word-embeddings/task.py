@@ -1,4 +1,4 @@
-import scipy.io as sio
+import random
 import numpy as np
 import sys
 sys.path.append('/home/aranguri/Desktop/dev/nns/rnn')
@@ -7,30 +7,32 @@ from utils import *
 class Task:
     def __init__(self, batch_size):
         self.batch_size = batch_size
-        data = sio.loadmat('data.mat')
-        test, self.train, val, words = data['data'][0][0] #Maybe test and validation are inverted.
-        self.words = np.concatenate(([None], words[0]))
-        self.vocab_size = len(self.words)
-        val_xs, self.val_ts = val[0:3], val[3]
-        val_xs = np.array([[one_of_k(n, self.vocab_size) for n in inpt] for inpt in val_xs])
-        self.val_xs = val_xs.swapaxes(1, 2)
-        self.test_xs, self.test_ts = test[0:3], test[3]
-        self.n = 0
+        cases = restore('processed_shakespeare')
+        xs, ts = zip(*cases[0][:10])
+        unique_words = set([word for case in xs for word in case])
+        word_to_i = {word: i for i, word in enumerate(unique_words)}
+        self.vocab_size = len(unique_words)
+        xs = [[one_of_k(word_to_i[word], self.vocab_size) for word in words] for words in xs]
+        self.data = list(zip(xs, ts))[:9]
+        self.val_xs, self.val_ts = zip(*list(zip(xs, ts))[9:])
+        self.val_xs, self.val_ts = np.array(self.val_xs), np.array(self.val_ts)
+        self.val_xs = self.val_xs.swapaxes(0, 1).swapaxes(1, 2)
+        self.n = -1
 
     def next_batch(self):
-        if self.n + self.batch_size >= self.train.shape[1]:
+        if self.n == len(self.data) // self.batch_size or self.n == -1:
             self.n = 0
-            np.random.shuffle(self.train)
-        end = self.n + self.batch_size
-        train_xs = self.train[0:3, self.n:end]
-        train_xs = np.array([[one_of_k(n, self.vocab_size) for n in inpt] for inpt in train_xs])
-        train_xs = train_xs.swapaxes(1, 2)
-        train_ts = self.train[3, self.n:end]
-        self.n = end
-        return train_xs, train_ts
+            np.random.shuffle(self.data)
+            self.xs, self.ts = zip(*self.data)
+            self.xs, self.ts = np.array(self.xs), np.array(self.ts)
+
+        ixs = random.sample(range(len(self.xs)), self.batch_size)
+        self.n += 1
+        xs = self.xs[ixs].swapaxes(0, 1).swapaxes(1, 2)
+        to_return = xs, self.ts[ixs]
+        self.xs = np.delete(self.xs, ixs, 0)
+        self.ts = np.delete(self.ts, ixs, 0)
+        return to_return
 
     def val_data(self):
-        return self.val_xs[:, :, :1000], self.val_ts[:1000]
-
-    def test_data(self):
-        return self.test_xs, self.test_ts
+        return self.val_xs, self.val_ts
