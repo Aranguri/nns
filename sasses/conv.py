@@ -5,50 +5,68 @@ from conv_layers import *
 from basic_layers import *
 from utils import *
 from task_load_docs import Task
+from optimizer import *
 
-embed_depth = 8
-hidden_depth = 8
-hidden_len = 8
-output_depth = 8
-output_len = 4
-
-batch_size = 1
-seq_length = 16
 learning_rate = 1e-1
+friction = .9
+batch_size = 100
+reg = 1e-2
 
-task = Task(seq_length, batch_size)
-w_embed = np.random.randn(embed_depth, 0) * 1e-2
-ws1 = np.random.randn(hidden_len, embed_depth, hidden_depth) * 1e-2
-ws2 = np.random.randn(output_len, hidden_depth, output_depth) * 1e-2
-loss_acc = {}
+embed_len = 20
+embed_depth = 20
+layers = [(5, 7), (5, 8), (5, 9), (4, 10), (3, 11), (2, 12)]
+wccs_sizes, wco_size = conv_structure([embed_len, embed_depth], layers)
+
+wic = np.random.randn(embed_depth, 0)
+wccs = np.array([np.random.randn(*wcc) * np.sqrt(2 / wcc[2]) * 5e-1 for wcc in wccs_sizes])
+wco = np.random.randn(1, wco_size + 1) * np.sqrt(1 / (wco_size + 1))
+ws = np.array([wic, wccs, wco], dtype=object)
+init_ws = lambda: ws - ws
+task = Task(embed_len, batch_size)
+optimizer = Momentum(init_ws, learning_rate, friction)
+tr_loss, tr_acc = [], []
 
 for i in itertools.count():
-    v, w, new_words, same = task.next_batch()
-    w_embed = enlarged(w_embed, new_words)
-    c, caches = [None, None], []
-    dws1_acc, dws2_acc = 0, 0
+    x, y = task.next_batch()
+    wic = enlarged(wic, len(task.words) - wic.shape[1])
 
-    for j, x in enumerate([v, w]):
-        embed, cache_embed = embed_forward(x, w_embed, keep_dims=True)
-        b, cache_conv1 = conv_forward(embed, ws1, relu)
-        c[j], cache_conv2 = conv_forward(b, ws2, identity)
-        caches.append([cache_embed, cache_conv1, cache_conv2])
+    a, cache_embed = embed_forward(x, wic)
+    cache_convs = {}
+    for j, wcc in enumerate(wccs):
+        a, cache_convs[j] = conv_forward(a, wcc, relu)
+        a -= a.mean()
+    b, cache_fc = affine_fn_forward(a.reshape(-1, a.shape[2]), wco, sigmoid)
+    loss_ce, cache_cost = ce_forward(b, y)
+    loss_reg, cache_reg = regularization_forward([wic, wccs, wco], reg)
+    tr_loss.append(loss_ce + loss_reg)
 
-    loss_acc[i], cache_cost = similarity_cost_forward(c[0], c[1], same)
-    #print (loss_acc[i], same)
-    dc1, dc2 = similarity_cost_backward(cache_cost)
+    db = ce_backward(cache_cost)
+    da, dwco = affine_fn_backward(db, cache_fc, sigmoid_prime)
+    da = da.reshape(*a.shape)
+    dwccs = np.zeros_like(wccs)
+    for j, cache_conv in enumerate(reversed(list(cache_convs.values()))):
+        da, dwccs[j] = conv_backward(da, cache_conv, relu_prime)
+    dx, dwic = embed_backward(da, cache_embed)
+    dwccs = np.array([dwccs[j] for j in reversed(range(len(dwccs)))])
+    dwic, dwccs, dwco = [dwic, dwccs, dwco] + regularization_backward(cache_reg)
+    print(wic[0][0])
 
-    for dc, cache in zip([dc1, dc2], caches):
-        cache_embed, cache_conv1, cache_conv2 = cache
-        dws2, db = conv_backward(dc, cache_conv2, identity_prime)
-        dws1, dembed = conv_backward(db, cache_conv1, relu_prime)
-        dw_embed, dx = embed_backward(dembed, cache_embed)
-        dws1_acc += dws1
-        dws2_acc += dws2
+    wic, wccs, wco = optimizer.update([wic, wccs, wco],
+                                      [dwic, dwccs, dwco])
 
-    #ws1 -= learning_rate * dws1_acc
-    #ws2 -= learning_rate * dws2_acc
-    print(list(loss_acc))
-    if i > 1:
-        print([np.mean(list(loss_acc)[:i]) for i in range(len(loss_acc) - 1)])
-        plot([np.mean(list(loss_acc.values())[:i]) for i in range(1, len(loss_acc) - 1)])
+    if i % 10 == 0:
+        x, y = task.next_batch()
+        wic = enlarged(wic, len(task.words) - wic.shape[1])
+
+        a, cache_embed = embed_forward(x, wic)
+        for wcc in wccs:
+            a, _ = conv_forward(a, wcc, relu)
+        d, cache_fc = affine_fn_forward(a.reshape(-1, a.shape[2]), wco, sigmoid)
+        tr_acc.append([(d > .5) == y][0][0])
+        correct = np.mean(tr_acc[-1])
+        print (f'Batch: {correct}. NN: {int((d > .5)[0][0])}. reality: {y[0]}. value {d[0][0]}')#'. txt: {p[:75]}')
+
+    print(f'Loss {np.mean(tr_loss)}. Acc: {np.mean(tr_acc)}')
+    plot([np.mean(tr_loss[i:i+1]) for i in range(len(tr_loss) // 1)])
+    #plot([np.mean(list(tr_loss.values())[:i + 1]) for i in range(len(tr_loss))])
+    #plot([np.mean(tr_acc)[:i + 1]) for i in range(len(tr_loss))])

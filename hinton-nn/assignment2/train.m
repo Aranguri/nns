@@ -14,6 +14,15 @@ else
   start_time = clock;
 end
 
+%1 2.807
+%2 3.014
+%3 2.534
+%4 3.234
+
+%1 4.529 4.375
+%2
+%3
+
 % SET HYPERPARAMETERS HERE.
 batchsize = 100;  % Mini-batch size.
 learning_rate = 0.1;  % Learning rate; default = 0.1.
@@ -101,15 +110,19 @@ for epoch = 1:epochs
     % FILL IN CODE. Replace the line below by one of the options.
     embed_to_hid_weights_gradient = zeros(numhid1 * numwords, numhid2);
     % Options:
+    #numwords
+    
+    %size(back_propagated_deriv_1)
+    %size(embedding_layer_state)
     % (a) embed_to_hid_weights_gradient = back_propagated_deriv_1' * embedding_layer_state;
-    % (b) embed_to_hid_weights_gradient = embedding_layer_state * back_propagated_deriv_1';
+    embed_to_hid_weights_gradient = embedding_layer_state * back_propagated_deriv_1';
     % (c) embed_to_hid_weights_gradient = back_propagated_deriv_1;
     % (d) embed_to_hid_weights_gradient = embedding_layer_state;
 
     % FILL IN CODE. Replace the line below by one of the options.
     hid_bias_gradient = zeros(numhid2, 1);
     % Options
-    % (a) hid_bias_gradient = sum(back_propagated_deriv_1, 2);
+    hid_bias_gradient = sum(back_propagated_deriv_1, 2);
     % (b) hid_bias_gradient = sum(back_propagated_deriv_1, 1);
     % (c) hid_bias_gradient = back_propagated_deriv_1;
     % (d) hid_bias_gradient = back_propagated_deriv_1';
@@ -117,7 +130,9 @@ for epoch = 1:epochs
     % FILL IN CODE. Replace the line below by one of the options.
     back_propagated_deriv_2 = zeros(numhid2, batchsize);
     % Options
-    % (a) back_propagated_deriv_2 = embed_to_hid_weights * back_propagated_deriv_1;
+    % Not sure about this
+    %size(back_propagated_deriv_1)
+    back_propagated_deriv_2 = embed_to_hid_weights * back_propagated_deriv_1;
     % (b) back_propagated_deriv_2 = back_propagated_deriv_1 * embed_to_hid_weights;
     % (c) back_propagated_deriv_2 = back_propagated_deriv_1' * embed_to_hid_weights;
     % (d) back_propagated_deriv_2 = back_propagated_deriv_1 * embed_to_hid_weights';

@@ -8,7 +8,7 @@ class Task:
         self.batch_size = batch_size
         text = open('../datasets/pg.txt').read()#[:1000000]
         text = clean_text(text)
-        self.vocab_size, self.word_to_i, self.i_to_word, self.data = tokenize_text(text)
+        self.vocab_size, self.word_to_i, self.i_to_word, self.data = tokenize_text_simple(text)
         self.data = self.data[:-47].reshape(-1, batch_size)
         self.i = 0
 

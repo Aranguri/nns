@@ -1,13 +1,15 @@
 import random
 import numpy as np
 import sys
-sys.path.append('/home/aranguri/Desktop/dev/nns/rnn')
+sys.path.append('../')
 from utils import *
 
 class Task:
-    def __init__(self, batch_size):
-        tr_size = 9000
-        val_size = 100
+    num_words = 5
+
+    def __init__(self, batch_size, tr_size, val_size):
+        tr_size = tr_size
+        val_size = val_size
         self.batch_size = batch_size
         cases = restore('processed_shakespeare')
         xs, ts = zip(*cases[0][:tr_size + val_size])

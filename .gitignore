@@ -1,0 +1,5 @@
+datasets/*
+*.pkl
+*.pyc
+*.txt
+hinton-nn

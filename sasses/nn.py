@@ -6,7 +6,7 @@ import itertools
 from basic_layers import *
 from utils import *
 from optimizer import *
-from task3 import Task
+from task_load_words import Task
 
 batch_size = 100
 embed_size = 50
@@ -22,6 +22,7 @@ weh = np.random.randn(hidden_size, embed_size) * np.sqrt(2 / (embed_size + 1))
 whh = np.random.randn(hidden_size, hidden_size + 1) * np.sqrt(2 / (hidden_size + 1))
 who = np.random.randn(task.vocab_size, hidden_size + 1) * np.sqrt(1 / (hidden_size + 1))
 ws = np.array([wie, weh, whh, who], dtype=object)
+#NOTE: I think that ws doesn't work
 init_h = lambda: np.zeros((hidden_size, batch_size))
 init_ws = lambda: ws - ws
 
