@@ -45,6 +45,7 @@ with tf.Session() as sess:
         tr_acc[i] = np.mean(np.argmax(ys, 2) == np.argmax(ts, 2))
         print('Acc: {}. Loss: {}'.format(tr_acc[i], tr_loss[i]))
 
+        '''
         if i % 5 == 0:
             xs = np.random.randint(task.vocab_size)
             for _ in range(15):
@@ -55,3 +56,4 @@ with tf.Session() as sess:
                 print (task.ixs_to_words(ys), end=' ')
             print ('\n')
             plot(tr_acc)
+        '''
