@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pickle
 import itertools
 import numpy as np
-import colorful
+# import colorful
 import re
 
 relu = lambda x: np.maximum(0, x)
@@ -113,12 +113,12 @@ def shuffle(array, axis):
     return array
 
 def save(name, *args):
-    with open(f'savings/{name}.pkl', 'wb') as f:
-        pickle.dump(args, f)
+    pass#with open(f'savings/{name}.pkl', 'wb') as f:
+    #    pickle.dump(args, f)
 
 def restore(name):
-    with open(f'savings/{name}.pkl', 'rb') as f:
-        return pickle.load(f)
+    pass#with open(f'savings/{name}.pkl', 'rb') as f:
+    #    return pickle.load(f)
 
 def init_cprint():
     colors = {'black': (0, 0, 0)}
@@ -131,7 +131,7 @@ def init_cprint():
 def cprint(char, color):
     color = (abs(color) ** (1/3)) * (color / abs(color)) + 1
     color = str(int(color * 255))
-    print (getattr(colorful, f'black_on_{color}')(char), end='')
+    #print (getattr(colorful, f'black_on_{color}')(char), end='')
 
 def plot(array):
     plt.ion()
