@@ -29,13 +29,16 @@ wro = tf.Variable(tf.random_normal([embed_size, task.vocab_size], stddev=0.01))
 bro = tf.Variable(tf.constant(0.0, shape=(task.vocab_size,)))
 
 embed = tf.nn.embedding_lookup(wie, x)
-rnn_out = rnn(embed)
+rnn_out, other = rnn(embed)
+rnn_out_flat = tf.reshape(rnn_out, (-1, rnn_out.get_shape()[2]))
 #rnn_out, final_state = tf.nn.dynamic_rnn(rnn, embed, initial_state=initial_state)#, time_major=True)
 #rnn_out = batch, seq_length, embed
 #wro = embed, vocab
-# rnn_out = tf.reshape(rnn_out, (-1, rnn_out.get_shape()[2])) #TODO: Improve this
-'''
-y = tf.matmul(rnn_out, wro)
+#rnn_out_shape = tf.Variable(rnn_out[0].get_shape())
+
+#rnn_out_flat = tf.reshape(rnn_out[0], (-1, rnn_out[0].get_shape()[2])) #TODO: Improve this
+
+y = tf.matmul(rnn_out_flat, wro)
 y = tf.reshape(y, (batch_size_ph, seq_length_ph, -1))
 y = tf.nn.relu(y + bro)
 
@@ -44,15 +47,16 @@ loss = tf.losses.softmax_cross_entropy(t, y)
 
 optimizer = tf.train.AdamOptimizer(learning_rate, beta1, beta2)
 minimize = optimizer.minimize(loss)
-'''
 tr_loss, dev_loss, dev_acc = {}, {}, {}
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for i in itertools.count():
         xs, ts = task.train_batch()
-        ps(sess.run([rnn_out], feed_dict={x: xs, t: ts, batch_size_ph: batch_size, seq_length_ph: seq_length}))
-        print('f')
+        #ps(xs)
+        #(a) = sess.run([rnn_out_2], feed_dict={x: xs, t: ts, batch_size_ph: batch_size, seq_length_ph: seq_length})
+        #ps(a)
+        #print('f')
         _, ys, tr_loss[i] = sess.run([minimize, y, loss], feed_dict={x: xs, t: ts, batch_size_ph: batch_size, seq_length_ph: seq_length})
         print ('Tr loss: ', tr_loss[i])
 
@@ -60,7 +64,7 @@ with tf.Session() as sess:
             xs, ts = task.dev_batch()
             ys, dev_loss[i] = sess.run([y_softmax, loss], feed_dict={x: xs, t: ts, batch_size_ph: batch_size, seq_length_ph: seq_length})
             dev_acc[i] = np.mean(np.argmax(ys, 2) == np.argmax(ts, 2))
-            print ('Dev loss: ', str(dev_loss[i])
+            print ('Dev loss: ', str(dev_loss[i]))
 
             xs = np.zeros((16,)).astype('int')
             xs[0] = np.random.randint(task.vocab_size)
