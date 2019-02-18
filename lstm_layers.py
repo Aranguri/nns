@@ -1,3 +1,5 @@
+''' Numpy implementation of a LSTM.  The code that uses this implementation in a task is in rnn/LSTM.py'''
+
 import numpy as np
 from utils import *
 
