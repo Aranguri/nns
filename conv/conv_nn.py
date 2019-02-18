@@ -1,3 +1,5 @@
+''' Numpy implementation of a CNN with the option for conv and pool layers '''
+
 import numpy as np
 from utils import *
 from tasks.mnist_task import Task
